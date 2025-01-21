@@ -32,7 +32,7 @@ class Kernel(ABC):
         return {"mean": self.mean, "variance": self.variance, "k": self.k}
 
     def get_kappa_star(self) -> float:
-        """p57,(3.13)の値を返す。κ２スター?"""
+        """p57,(3.13)の値を返す。κ２スター"""
         kappa_star = (self.v2**2 - self.v1 * self.v3) / (self.v0 * self.v2 - self.v1**2)
         return kappa_star
 
@@ -202,12 +202,11 @@ def local_polinomial_estimator(
         ],
         axis=0,
     )
-    # まあ本当は全部exceptの方でいいんだけど．．．
+    # 本当は全部exceptの方でいい
     try:
         ZZ_inv = np.linalg.inv(ZZ)
     except np.linalg.LinAlgError:
         ZZ_inv = np.linalg.pinv(ZZ)
-        print("ZZ is singular!")
     beta = np.sum(
         [kernel_series[i] * y[i] * np.array([Z[:, i]]).T for i in range(Z.shape[1])],
         axis=0,
@@ -233,7 +232,7 @@ def convert_and_square(data):
 
 # ここではp53 h_optの式に基づき最適なバンド幅を計算する。
 def calculate_optimal_bandwidth(
-    X_train: np.array, y_train: np.array, band_width: float, kernel: Kernel
+    X_train: np.array, y_train: np.array, band_width: float, kernel: Kernel, p: int = 2
 ):
     n = X_train.shape[0]
     min_x = pd.Series(X_train).quantile(0.02)
@@ -245,7 +244,7 @@ def calculate_optimal_bandwidth(
 
     step = 50
     for i in range(step):
-        beta = local_polinomial_estimator(X_train, y_train, kernel, x, band_width, 2)
+        beta = local_polinomial_estimator(X_train, y_train, kernel, x, band_width, p)
         mudds.append(beta[2][0])
         left = x
         right = x + (max_x - min_x) / step
@@ -268,11 +267,18 @@ def calculate_optimal_bandwidth(
 
 
 # シリーズ法用にデータを整形する関数
-
-
 def convert_for_series_method_data(s: np.array, r: int = 3, K: int = 10, knots=[]):
-    # r :最大次数
-    # K :ノット数(区間を分割する個数)
+    """_summary_
+
+    Args:
+        s (np.array): _description_
+        r (int, optional): 最大次数. Defaults to 3.
+        K (int, optional): ノット数(区間を分割する個数. Defaults to 10.
+        knots (list, optional): _description_. Defaults to [].
+
+    Returns:
+        _type_: _description_
+    """
     if len(knots) == 0:
         knot_h = (s.max() - s.min()) / K
         knots = np.array([s.min() + (i + 1) * knot_h for i in range(K - 1)])
@@ -383,7 +389,7 @@ def calculate_ichimura_estimator(
             calculate_error,
             np.array([0.1] * (X1.shape[1] - 1)),
             args=(X1, y1, band_width, kernel),
-            method="Nelder-Mead",  # Powellも使えるらしいがなぜかnanが帰ってきがち。
+            method="Nelder-Mead",  # Powellも使えるらしいがなぜかnanが返ってきがち。
             callback=print_iter,
         )
     else:
