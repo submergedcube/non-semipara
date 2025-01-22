@@ -45,28 +45,19 @@ def calculate_robinson_estimator(
 
 
 def calculate_ichimura_estimator(
-    X1: np.array, y1: np.array, band_width: float, kernel: Kernel, verbose=False
+    X1: np.array, y1: np.array, band_width: float, kernel: Kernel
 ) -> np.array:
-    """市村推定量(p.78)を計算する。説明変数が少しでも大きくなると途端に遅くなる。
+    """Ichimura推定量(p.78)を計算する。説明変数が少しでも大きくなると途端に遅くなる。
 
     Args:
         X1 (np.array): 説明変数
         y1 (np.array): 目的変数
         band_width (float): NW推定量に使うバンド幅
         kernel (Kernel): NW推定量に使うカーネル
-        verbose (bool, optional): デバッグ用のフラグ. Defaults to False.
-
 
     Returns:
         np.array: 説明変数と内積を取るβの第二成分以降。δハット。最適化の制約上βの第一成分は1に固定されている。内積をカーネルの引数としてNWを取ればよい。
     """
-
-    def print_iter(xk):
-        print_iter.count += 1
-        print(
-            f"iteration {print_iter.count}: x = {np.array2string(xk, precision=2, separator=', ')}"
-        )
-
     def LOO_NW(
         x: np.array,
         y: np.array,
@@ -76,9 +67,20 @@ def calculate_ichimura_estimator(
         kernel: Kernel,
         index: int,
     ):
-        """ただの一個抜きNadaraya-Watson推定量。"""
-        if index > x.shape[0]:
-            raise ValueError
+        """ただの一個抜きNadaraya-Watson推定量
+
+        Args:
+            x (np.array): 共変量or説明変数。多変量でOK。
+            y (np.array): 目的変数。
+            s (np.array): 予測用の共変量or説明変数。xと同じ次元の一データ分。
+            b (np.array): 
+            band_width (float): 
+            kernel (Kernel): 
+            index (int): 
+
+        Returns:
+            _type_: _description_
+        """
         x = np.vstack([x[:index], x[index + 1 :]])
         y = np.hstack([y[:index], y[index + 1 :]])
 
@@ -105,21 +107,11 @@ def calculate_ichimura_estimator(
             sum += (yy[i] - estimated_y) ** 2
         return sum
 
-    # カウンタを初期化
-    print_iter.count = 0
-    if verbose:
-        result = minimize(
-            calculate_error,
-            np.array([0.1] * (X1.shape[1] - 1)),
-            args=(X1, y1, band_width, kernel),
-            method="Nelder-Mead",  # Powellも使えるらしいがなぜかnanが帰ってきがち。
-            callback=print_iter,
-        )
-    else:
-        result = minimize(
-            calculate_error,
-            np.array([0.1] * (X1.shape[1] - 1)),
-            args=(X1, y1, band_width, kernel),
-            method="Nelder-Mead",
-        )
+    result = minimize(
+        calculate_error,
+        np.array([0.1] * (X1.shape[1] - 1)),
+        args=(X1, y1, band_width, kernel),
+        method="Nelder-Mead",  # Powellも使えるらしいがなぜかnanになりがち。
+    )
+
     return result["x"]

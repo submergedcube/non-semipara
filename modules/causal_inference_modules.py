@@ -36,7 +36,7 @@ def calculate_ATE_by_regression_adjustment(
 
 
 def calculate_ATE_by_IWP(X: np.array, Z: np.array, y: np.array) -> float:
-    """介入効果を逆確率重み付け法で推定する。(p.80)
+    """介入効果を逆確率重み付け法(IPW)で推定する。ロジスティック回帰を使うタイプ(p.80)
 
     Args:
         X (np.array): 説明変数。1次元配列でなくてもよい。
@@ -56,7 +56,7 @@ def calculate_ATE_by_IWP(X: np.array, Z: np.array, y: np.array) -> float:
 
 
 def calculate_ATE_by_hahn_method(X: np.array, Z: np.array, y: np.array) -> list:
-    """平均介入効果をHahnの方法とHiranoの方法で推定する(p.80)
+    """平均介入効果をHahnの方法とHiranoの方法で推定する(p.81)
 
     Args:
         X (np.array): 説明変数。1次元配列であること。
@@ -64,20 +64,22 @@ def calculate_ATE_by_hahn_method(X: np.array, Z: np.array, y: np.array) -> list:
         y (np.array): 目的変数。1次元配列であること。
 
     Returns:
-        list: 介入効果の推定値。第一成分がHahnの方法の推定量,Hiranoの方法の推定量。
+        list: 介入効果の推定値。第一成分がHahnの方法の推定量,第二成分がHiranoの方法の推定量。
     """
     X = X.reshape(1, -1)[0]
     Z = Z.reshape(-1, 1)
     y = y.reshape(-1, 1)
     q, knots = convert_for_series_method_data(X)
-
-    beta1 = np.linalg.inv(q @ q.T) @ q @ (y * Z)
+    
+    QQQ = np.linalg.inv(q @ q.T) @ q
+    
+    beta1 = QQQ @ (y * Z)
     eta_hat_d = q.T @ beta1
 
-    beta2 = np.linalg.inv(q @ q.T) @ q @ (y * (1 - Z))
+    beta2 = QQQ @ (y * (1 - Z))
     eta_hat_1d = q.T @ beta2
 
-    beta3 = np.linalg.inv(q @ q.T) @ q @ Z
+    beta3 = QQQ @ Z
     p = q.T @ beta3
 
     eta_hat_hahn = (eta_hat_d / p - eta_hat_1d / (1 - p)).sum() / y.shape[0]
