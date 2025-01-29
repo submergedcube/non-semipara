@@ -202,11 +202,8 @@ def local_polinomial_estimator(
         ],
         axis=0,
     )
-    # 本当は全部exceptの方でいい
-    try:
-        ZZ_inv = np.linalg.inv(ZZ)
-    except np.linalg.LinAlgError:
-        ZZ_inv = np.linalg.pinv(ZZ)
+
+    ZZ_inv = np.linalg.pinv(ZZ)
     beta = np.sum(
         [kernel_series[i] * y[i] * np.array([Z[:, i]]).T for i in range(Z.shape[1])],
         axis=0,
@@ -319,24 +316,6 @@ def calculate_optimal_K(s: np.array, y: np.array, max_K: int = 50):
     best_k = try_K[np.argmin(CVs)]
 
     return best_k
-
-
-def calculate_ichimura_estimator(
-    X1: np.array, y1: np.array, band_width: float, kernel: Kernel, verbose=False
-) -> np.array:
-    """市村推定量(p.78)を計算する。説明変数が少しでも大きくなると途端に遅くなる。
-
-    Args:
-        X1 (np.array): 説明変数
-        y1 (np.array): 目的変数
-        band_width (float): NW推定量に使うバンド幅
-        kernel (Kernel): NW推定量に使うカーネル
-        verbose (bool, optional): デバッグ用のフラグ. Defaults to False.
-
-
-    Returns:
-        np.array: 説明変数と内積を取るβの第二成分以降。δハット。最適化の制約上βの第一成分は1に固定されている。内積をカーネルの引数としてNWを取ればよい。
-    """
 
     def print_iter(xk):
         print_iter.count += 1
